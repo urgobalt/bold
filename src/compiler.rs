@@ -1,11 +1,13 @@
 use log::{debug, error, info, trace};
 use std::path::PathBuf;
 
+#[derive(Debug)]
 enum CompilerType {
     Clang,
     GCC,
 }
 
+#[derive(Debug)]
 pub struct Compiler {
     compiler_type: CompilerType,
     compiler_path: PathBuf,

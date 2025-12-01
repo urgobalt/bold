@@ -5,16 +5,19 @@ use std::path::PathBuf;
 
 mod compiler;
 mod logging;
+mod project_root;
 
 use compiler::Compiler;
 
 fn main() {
     logging::init_logger();
     let build_environment = get_build_environment();
+    debug!("{:?}", build_environment);
 }
 
 const BUILD_FILE_NAME: &str = "build.c";
 
+#[derive(Debug)]
 struct BuildEnvironment {
     project_root: PathBuf,
     build_file: PathBuf,
@@ -32,41 +35,8 @@ impl BuildEnvironment {
 }
 
 fn get_build_environment() -> BuildEnvironment {
-    let build_directory = find_project_root();
+    let project_root = project_root::find_project_root();
     let compiler = compiler::find_c_compiler();
 
-    BuildEnvironment::new(build_directory, compiler)
-}
-
-fn find_project_root() -> PathBuf {
-    let current_dir = match std::env::current_dir() {
-        Ok(val) => val,
-        Err(err) => {
-            error!(
-                r#"
-                Unable to get the current directory.
-                Failed with: {}
-                "#,
-                err
-            );
-            std::process::exit(1);
-        }
-    };
-    debug!("Resolved current directory to {:?}", current_dir);
-
-    debug!("Finding build directory");
-    let Some(build_directory) = current_dir.ancestors().find(|path| {
-        trace!("Checking directory: {:?}", path);
-        path.join(BUILD_FILE_NAME).exists()
-    }) else {
-        error!("No build file found.");
-        info!(
-            "Try adding a file named '{}' in the project root.",
-            BUILD_FILE_NAME
-        );
-        std::process::exit(1);
-    };
-
-    info!("Resolved project root to {:?}", build_directory);
-    build_directory.to_path_buf()
+    BuildEnvironment::new(project_root, compiler)
 }
