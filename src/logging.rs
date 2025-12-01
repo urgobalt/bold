@@ -1,8 +1,33 @@
+use clap::ValueEnum;
 use colored::{ColoredString, Colorize};
-use log::{Level, LevelFilter};
+use serde::{Deserialize, Serialize};
 use std::io::Write;
 
+#[derive(Debug, Clone, Serialize, Deserialize, ValueEnum)]
+pub enum Level {
+    Default,
+    Debug,
+    Trace,
+}
+
+impl Into<log::Level> for Level {
+    fn into(self) -> log::Level {
+        match self {
+            Level::Default => log::Level::Info,
+            Level::Debug => log::Level::Debug,
+            Level::Trace => log::Level::Trace,
+        }
+    }
+}
+
+impl Default for Level {
+    fn default() -> Self {
+        Self::Default
+    }
+}
+
 pub fn init_logger() {
+    use log::LevelFilter;
     let filter_level = match cfg!(debug_assertions) {
         true => LevelFilter::Trace,
         false => LevelFilter::Info,
@@ -15,10 +40,10 @@ pub fn init_logger() {
 
 fn colored_status(level: log::Level) -> ColoredString {
     match level {
-        Level::Error => level.as_str().bold().red(),
-        Level::Warn => level.as_str().bold().yellow(),
-        Level::Info => level.as_str().bold().cyan(),
-        Level::Debug => level.as_str().bold().blue(),
-        Level::Trace => level.as_str().bold().white(),
+        log::Level::Error => level.as_str().bold().red(),
+        log::Level::Warn => level.as_str().bold().yellow(),
+        log::Level::Info => level.as_str().bold().cyan(),
+        log::Level::Debug => level.as_str().bold().blue(),
+        log::Level::Trace => level.as_str().bold().white(),
     }
 }
