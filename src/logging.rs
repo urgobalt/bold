@@ -2,20 +2,22 @@ use clap::ValueEnum;
 use colored::{ColoredString, Colorize};
 use serde::{Deserialize, Serialize};
 use std::io::Write;
+use strum::Display;
 
-#[derive(Debug, Clone, Serialize, Deserialize, ValueEnum)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize, ValueEnum, Display)]
+#[strum(serialize_all = "lowercase")]
 pub enum Level {
     Default,
     Debug,
     Trace,
 }
 
-impl Into<log::Level> for Level {
-    fn into(self) -> log::Level {
+impl Into<log::LevelFilter> for Level {
+    fn into(self) -> log::LevelFilter {
         match self {
-            Level::Default => log::Level::Info,
-            Level::Debug => log::Level::Debug,
-            Level::Trace => log::Level::Trace,
+            Level::Default => log::LevelFilter::Info,
+            Level::Debug => log::LevelFilter::Debug,
+            Level::Trace => log::LevelFilter::Trace,
         }
     }
 }
