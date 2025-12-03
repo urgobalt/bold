@@ -10,6 +10,8 @@ mod user_arguments;
 
 use compiler::{Compiler, CompilerType};
 
+use self::user_arguments::{BuildAction, GlobalFlags};
+
 const DEFAULT_BUILD_FILE_NAME: &str = "build.c";
 const DEFAULT_BUILD_CONFIG_FILE_NAME: &str = "bold.toml";
 
@@ -18,8 +20,24 @@ const COMPILERS: [CompilerType; 2] = [CompilerType::Clang, CompilerType::GCC];
 
 fn main() {
     logging::init_logger();
-    let build_environment = build_environment();
-    debug!("{:?}", build_environment);
+    let cli_arguments = user_arguments::get_cli_arguments();
+    log::set_max_level(cli_arguments.global_flags.log_level.into());
+    debug!(
+        "Set log level to '{}'",
+        cli_arguments.global_flags.log_level
+    );
+    debug!("Selecting action {:?}", &cli_arguments.action);
+    match &cli_arguments.action {
+        user_arguments::Action::Init(init_action) => user_arguments::generate_configuration_file(
+            &PathBuf::new(),
+            &cli_arguments.global_flags,
+        ),
+        user_arguments::Action::Build(build_action) => {
+            let build_environment = build_environment(build_action, &cli_arguments.global_flags);
+            debug!("{:?}", build_environment);
+        }
+        user_arguments::Action::Compile(compile_action) => todo!(),
+    }
 }
 
 #[derive(Debug)]
@@ -39,32 +57,10 @@ impl BuildEnvironment {
     }
 }
 
-fn build_environment() -> BuildEnvironment {
-    let cli_arguments = user_arguments::get_cli_arguments();
-    let project_root = project_root::find_project_root(&cli_arguments.build_filename);
-    log::set_max_level(cli_arguments.log_level.into());
-    if cli_arguments.generate_config_file {
-        user_arguments::generate_configuration_file(&project_root, &cli_arguments);
-    }
-
-    let toml_arguments = user_arguments::get_toml_arguments(&project_root, &cli_arguments);
-    let compilers;
-    if cli_arguments.compiler_filter.is_empty() {
-        compilers = Vec::from(COMPILERS);
-    } else {
-        compilers = COMPILERS
-            .iter()
-            .filter_map(|compiler| {
-                for compiler_filter in &cli_arguments.compiler_filter {
-                    if compiler_filter == compiler {
-                        return Some(compiler.clone());
-                    }
-                }
-                None
-            })
-            .collect::<Vec<CompilerType>>();
-    }
-    let compiler = compiler::find_c_compiler(compilers);
+fn build_environment(build_action: &BuildAction, global_flags: &GlobalFlags) -> BuildEnvironment {
+    let project_root = project_root::find_project_root(&build_action.build_filename);
+    let toml_arguments = user_arguments::get_toml_arguments(&project_root, &global_flags);
+    let compiler = compiler::choose_c_compiler(build_action);
 
     BuildEnvironment::new(project_root, compiler)
 }
