@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::compiler::CompilerType;
-use crate::logging;
+use crate::{COMPILERS, logging};
 use clap::Parser;
 use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};

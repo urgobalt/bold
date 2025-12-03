@@ -48,17 +48,22 @@ fn build_environment() -> BuildEnvironment {
     }
 
     let toml_arguments = user_arguments::get_toml_arguments(&project_root, &cli_arguments);
-    let compilers = COMPILERS
-        .iter()
-        .filter_map(|compiler| {
-            for compiler_filter in &cli_arguments.compiler_filter {
-                if compiler_filter == compiler {
-                    return Some(compiler.clone());
+    let compilers;
+    if cli_arguments.compiler_filter.is_empty() {
+        compilers = Vec::from(COMPILERS);
+    } else {
+        compilers = COMPILERS
+            .iter()
+            .filter_map(|compiler| {
+                for compiler_filter in &cli_arguments.compiler_filter {
+                    if compiler_filter == compiler {
+                        return Some(compiler.clone());
+                    }
                 }
-            }
-            None
-        })
-        .collect::<Vec<CompilerType>>();
+                None
+            })
+            .collect::<Vec<CompilerType>>();
+    }
     let compiler = compiler::find_c_compiler(compilers);
 
     BuildEnvironment::new(project_root, compiler)
