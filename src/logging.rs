@@ -1,5 +1,6 @@
 use clap::ValueEnum;
 use colored::{ColoredString, Colorize};
+use log::debug;
 use serde::{Deserialize, Serialize};
 use std::io::Write;
 use strum::Display;
@@ -15,7 +16,13 @@ pub enum Level {
 impl Into<log::LevelFilter> for Level {
     fn into(self) -> log::LevelFilter {
         match self {
-            Level::Default => log::LevelFilter::Info,
+            Level::Default => {
+                if cfg!(debug_assertions) {
+                    log::LevelFilter::Trace
+                } else {
+                    log::LevelFilter::Info
+                }
+            }
             Level::Debug => log::LevelFilter::Debug,
             Level::Trace => log::LevelFilter::Trace,
         }
@@ -28,16 +35,14 @@ impl Default for Level {
     }
 }
 
-pub fn init_logger() {
-    use log::LevelFilter;
-    let filter_level = match cfg!(debug_assertions) {
-        true => LevelFilter::Trace,
-        false => LevelFilter::Info,
-    };
+pub fn init_logger(level: Level) {
+    let filter_level = level.into();
     env_logger::Builder::from_default_env()
         .format(|buf, record| writeln!(buf, "{} {}", colored_status(record.level()), record.args()))
         .filter_level(filter_level)
         .init();
+
+    debug!("Successfully initialized the logger")
 }
 
 fn colored_status(level: log::Level) -> ColoredString {

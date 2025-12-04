@@ -1,2 +1,3 @@
 /target
-build.c
+**/build.c
+**/bold.toml

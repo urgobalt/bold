@@ -1,13 +1,14 @@
 use clap::ValueEnum;
 use colored::Colorize;
 use log::{debug, error, info, trace};
+use std::collections::HashSet;
+use std::fmt::Write;
 use std::path::PathBuf;
 use strum::Display;
 
 use crate::COMPILERS;
-use crate::user_arguments::BuildAction;
 
-#[derive(Debug, Clone, Copy, ValueEnum, PartialEq, PartialOrd, Display)]
+#[derive(Debug, Clone, Copy, ValueEnum, PartialEq, Eq, PartialOrd, Display, Hash)]
 #[strum(serialize_all = "lowercase")]
 pub enum CompilerType {
     Clang,
@@ -28,11 +29,17 @@ pub struct Compiler {
     compiler_path: PathBuf,
 }
 
-pub fn choose_c_compiler(build_action: &BuildAction) -> Compiler {
-    if let Some(compiler_path) = build_action.compiler.clone() {
+pub trait CompilerFlags {
+    fn compiler(&self) -> &Option<PathBuf>;
+    fn compiler_type(&self) -> &Option<CompilerType>;
+    fn compiler_filter(&self) -> &Vec<CompilerType>;
+}
+
+pub fn choose_c_compiler(build_action: &impl CompilerFlags) -> Compiler {
+    if let Some(compiler_path) = build_action.compiler().clone() {
         if compiler_path.is_file() {
             debug!("Choosing user specified compiler {:?}", &compiler_path);
-            if let Some(compiler_type) = build_action.compiler_type {
+            if let Some(compiler_type) = build_action.compiler_type().clone() {
                 return Compiler {
                     compiler_type,
                     compiler_path,
@@ -56,22 +63,59 @@ pub fn choose_c_compiler(build_action: &BuildAction) -> Compiler {
     }
 
     let compilers;
-    if build_action.compiler_filter.is_empty() {
+    if build_action.compiler_filter().is_empty() {
+        debug!("Unfiltered compiler search");
         compilers = Vec::from(COMPILERS);
     } else {
-        compilers = COMPILERS
-            .iter()
-            .filter_map(|compiler| {
-                for compiler_filter in &build_action.compiler_filter {
-                    if compiler_filter == compiler {
-                        return Some(compiler.clone());
-                    }
-                }
-                None
-            })
+        debug!(
+            "Filtered compiler search with filter {:?}",
+            build_action.compiler_filter()
+        );
+        compilers = build_action
+            .compiler_filter()
+            .clone()
+            .into_iter()
+            .collect::<HashSet<CompilerType>>()
+            .into_iter()
             .collect::<Vec<CompilerType>>();
     }
+
+    info!(
+        "Searching for compilers with signature: {}",
+        fmt_compiler_filter(&compilers)
+    );
     find_c_compiler(compilers)
+}
+
+fn fmt_compiler_filter(compilers: &Vec<CompilerType>) -> String {
+    let mut buf = String::new();
+    if compilers.len() == 1 {
+        if let Err(err) = write!(&mut buf, "{}", compilers.last().unwrap()) {
+            error!("Formatting compiler_filter: {}", err);
+        }
+        return buf;
+    } else if compilers.len() == 2 {
+        if let Err(err) = write!(
+            &mut buf,
+            "{} and {}",
+            compilers.first().unwrap(),
+            compilers.last().unwrap()
+        ) {
+            error!("Formatting compiler_filter: {}", err);
+        }
+        return buf;
+    }
+    for i in 0..(compilers.len() - 1) {
+        if let Err(err) = write!(&mut buf, "{}, ", compilers.get(i).unwrap()) {
+            error!("Formatting compiler_filter: {}", err);
+        }
+    }
+
+    if let Err(err) = write!(&mut buf, "or {}", compilers.last().unwrap()) {
+        error!("Formatting compiler_filter: {}", err);
+    }
+
+    buf
 }
 
 #[cfg(target_family = "unix")]
