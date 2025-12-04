@@ -32,8 +32,11 @@ pub struct GlobalFlags {
 
 #[derive(Debug, Clone, Subcommand)]
 pub enum Action {
+    /// Initialize a new project
     Init(InitAction),
+    /// Build the project
     Build(BuildAction),
+    /// Execute the compiler prepared by bold
     Compile(CompileAction),
 }
 
