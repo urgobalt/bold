@@ -58,7 +58,7 @@ impl BuildEnvironment {
 }
 
 fn build_environment(build_action: &BuildAction, global_flags: &GlobalFlags) -> BuildEnvironment {
-    let project_root = project_root::find_project_root(&build_action.build_filename);
+    let project_root = project_root::find_project_root(&build_action.build_file);
     let toml_arguments = user_arguments::get_toml_arguments(&project_root, &global_flags);
     let compiler = compiler::choose_c_compiler(build_action);
 

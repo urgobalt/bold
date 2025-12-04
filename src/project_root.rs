@@ -1,8 +1,8 @@
-use log::{ error, info, debug, trace };
-use std::path::PathBuf;
 use crate::DEFAULT_BUILD_FILE_NAME;
+use log::{debug, error, info, trace};
+use std::path::PathBuf;
 
-pub fn find_project_root(build_filename: &str) -> PathBuf {
+pub fn find_project_root(build_file: &str) -> PathBuf {
     let current_dir = match std::env::current_dir() {
         Ok(val) => val,
         Err(err) => {
@@ -21,12 +21,12 @@ pub fn find_project_root(build_filename: &str) -> PathBuf {
     debug!("Finding build directory");
     let Some(build_directory) = current_dir.ancestors().find(|path| {
         trace!("Checking directory: {:?}", path);
-        path.join(build_filename).exists()
+        path.join(build_file).exists()
     }) else {
         error!("No build file found.");
         info!(
             "Try adding a file named '{}' in the project root.",
-            build_filename
+            build_file
         );
         std::process::exit(1);
     };

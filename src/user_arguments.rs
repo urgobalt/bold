@@ -44,7 +44,7 @@ pub enum Action {
 pub struct BuildAction {
     /// Name of build file
     #[arg(long, env = "BOLD_BUILD_FILE", default_value_t = DEFAULT_BUILD_FILE_NAME.into())]
-    pub build_filename: String,
+    pub build_file: String,
     /// Filter for te compiler resolver
     #[arg(long)]
     pub compiler_filter: Vec<CompilerType>,
